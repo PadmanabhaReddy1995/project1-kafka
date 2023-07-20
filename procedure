@@ -1,0 +1,90 @@
+- connect to the EC2 instance.
+- update the server.properties file in config folder with public IP of EC2 instance
+Before - listeners = PLAINTEXT://your.host.name:9092
+After - listeners=PLAINTEXT://ec2-3-87-65-85.compute-1.amazonaws.com:9092
+
+
+start zookeeper:-
+------------------------------------
+bin/zookeeper-server-start.sh config/zookeeper.properties
+
+Start Apache-Kafka:-
+------------------------------------
+bin/kafka-server-start.sh config/server.properties
+
+Create the topic:
+------------------------------------
+Duplicate the session & enter in a new console --
+cd kafka_2.12-3.3.1
+bin/kafka-topics.sh --create --topic demo_testing2 --bootstrap-server {Put the Public IP of your EC2 Instance:9092} --replication-factor 1 --partitions 1
+
+Start Producer:
+------------------------------------
+bin/kafka-console-producer.sh --topic demo_testing2 --bootstrap-server {Put the Public IP of your EC2 Instance:9092} 
+
+Start Consumer:
+------------------------------------
+Duplicate the session & enter in a new console --
+cd kafka_2.12-3.3.1
+bin/kafka-console-consumer.sh --topic demo_testing2 --bootstrap-server {Put the Public IP of your EC2 Instance:9092}
+
+Python Kafka producer code:-
+--------------------------------------------------------------------------------------------------------------------------
+import pandas as pd
+from kafka import KafkaProducer
+from time import sleep
+from json import dumps
+import json
+
+producer = KafkaProducer(
+            bootstrap_servers=['ec2-3-87-65-85.compute-1.amazonaws.com'],
+            value_serializer=lambda x : dumps(x).encode('utf-8')
+)
+
+df = pd.read_csv('/Users/reddy/Downloads/personal_projects/2_project2_stock_analysis_kafka/indexProcessed.csv')
+
+while True:
+    producer.send('t1', df.sample(1).to_dict(orient="records")[0])
+--------------------------------------------------------------------------------------------------------------------------
+
+
+python consumer code:-
+------------------------------------
+import json
+from s3fs import S3FileSystem
+
+# Replace 'YOUR_ACCESS_KEY_ID' and 'YOUR_SECRET_ACCESS_KEY' with your actual AWS credentials
+aws_access_key_id = 'AKIAYH3C7XFC7R73EBCM'
+aws_secret_access_key = 'p78BQO0PGzRCumGgBomsYTvuunDGRsF3S176289o'
+
+# Initialize the S3FileSystem object with the AWS credentials
+s3 = S3FileSystem(key=aws_access_key_id, secret=aws_secret_access_key)
+
+# Your Kafka consumer code goes here...
+# For example:
+from kafka import KafkaConsumer
+from json import loads
+
+# Create the Kafka consumer
+consumer = KafkaConsumer(
+    't1',
+    bootstrap_servers=['ec2-3-87-65-85.compute-1.amazonaws.com'],
+    value_deserializer=lambda x: loads(x.decode('utf-8'))
+)
+
+# Process Kafka messages and upload to S3 using s3fs
+for i, j in enumerate(consumer):
+    # Assuming your Kafka message is a JSON object, you can convert it to a string
+    json_str = json.dumps(j.value)
+
+    # Upload the JSON string to S3
+    s3_key = "stock_market_{}.json".format(i)
+    with s3.open("stock-analysis-kafka/" + s3_key, 'w') as file:
+        file.write(json_str)
+----------------------------------------------------------------------------------------------------------------------
+
+
+- Create and start a glue crawler to crawl the data in S3.
+- Query data from AWS Athena
+
+
