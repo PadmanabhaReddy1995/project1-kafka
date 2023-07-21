@@ -54,8 +54,8 @@ import json
 from s3fs import S3FileSystem
 
 # Replace 'YOUR_ACCESS_KEY_ID' and 'YOUR_SECRET_ACCESS_KEY' with your actual AWS credentials
-aws_access_key_id = 'AKIAYH3C7XFC7R73EBCM'
-aws_secret_access_key = 'p78BQO0PGzRCumGgBomsYTvuunDGRsF3S176289o'
+aws_access_key_id = 'AKIAYH3C7XFC7##$#23CM'
+aws_secret_access_key = 'p78BQO0PGz1234523vuunDGRsF3S176289o'
 
 # Initialize the S3FileSystem object with the AWS credentials
 s3 = S3FileSystem(key=aws_access_key_id, secret=aws_secret_access_key)
